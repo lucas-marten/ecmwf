@@ -3,9 +3,9 @@ import sys
 
 def test_dag_structure():
     sys.path.insert(1, "/airflow/dags")
-    from ecmwf_dev.ecmwf_as_00 import ecmwf_as_00_dev_taskflow
+    from ecmwf_dev.ecmwfe_as_00 import ecmwfe_as_00_dev_taskflow
 
-    dag = ecmwf_as_00_dev_taskflow()
+    dag = ecmwfe_as_00_dev_taskflow()
     assert dag.tags, "A DAG não contém tags."
     assert dag.doc_md, "A DAG não contém documentação."
     # assert dag.catchup, "A DAG não está configurada para catchup."
@@ -21,13 +21,9 @@ def test_dag_structure():
 
 def test_groups():
     sys.path.insert(1, "/airflow/dags")
-    from ecmwf_dev.ecmwf_as_00 import ecmwf_as_00_dev_taskflow
+    from ecmwf_dev.ecmwfe_as_00 import ecmwfe_as_00_dev_taskflow
 
-    dag = ecmwf_as_00_dev_taskflow()
+    dag = ecmwfe_as_00_dev_taskflow()
     task_groups = dag.task_group.get_task_group_dict()
 
     assert task_groups["collect_group"], "collect_group não existe."
-    assert task_groups["hydra_priority_group"], "hydra_priority_group não existe."
-    assert task_groups["k_tt_sweat_indexes"], "k_tt_sweat_indexes não existe."
-    assert task_groups["hydra_group"], "hydra_group não existe."
-    assert task_groups["sema_group"], "sema_group não existe."

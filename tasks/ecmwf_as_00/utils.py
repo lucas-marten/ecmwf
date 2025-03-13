@@ -173,6 +173,8 @@ def ct_datahub_decompression(prefix, hour, output_dir, **context):
     script = "python3 /airflow-dev/tools/ct-datahub/datahub/aws/download.py"
     output_dir = date.strftime(output_dir)
 
+    os.makedirs(os.path.dirname(output_dir), exist_ok=True)
+
     for f in os.listdir(output_dir):
         if f.startswith(prefix):
             path_rm = os.path.join(output_dir, f)
@@ -196,8 +198,8 @@ def ct_datahub_decompression(prefix, hour, output_dir, **context):
     # TODO: testar para os outros ECMWFs
     # elif prefix == "CLE" and len(files) >= 73:
     #    decompress(output_dir, prefix)
-    # elif prefix == "D3F" and len(files) >= 73:
-    #    decompress(output_dir, prefix)
+    elif prefix == "D3F" and len(files) >= 47:
+        decompress(output_dir, prefix)
 
     else:
         raise AirflowException("ct_datahub(): Arquivos incompletos")
@@ -212,7 +214,7 @@ if __name__ == "__main__":
     functions = {
         "get_ec_times": get_ec_times,
         "check_download": check_download,
-        "check_s3": check_s3, 
+        "check_s3": check_s3,
         "decompress": decompress,
         "ct_datahub_decompression": ct_datahub_decompression,
     }
