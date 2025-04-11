@@ -1,11 +1,12 @@
-import sys
+def test_dag():
+    # from airflow.models import DagBag
+    # dag = DagBag(include_examples=False, dag_folder="/airflow/dags/").get_dag("ecmwfe_as_00")
+    import sys
 
-
-def test_dag_structure():
     sys.path.insert(1, "/airflow/dags")
-    from ecmwf_dev.ecmwfe_as_00 import ecmwfe_as_00_dev_taskflow
+    from ecmwf_dev.ecmwfe_as_00 import ecmwfe_as_00_dev
 
-    dag = ecmwfe_as_00_dev_taskflow()
+    dag = ecmwfe_as_00_dev()
     assert dag.tags, "A DAG não contém tags."
     assert dag.doc_md, "A DAG não contém documentação."
     # assert dag.catchup, "A DAG não está configurada para catchup."
@@ -19,11 +20,34 @@ def test_dag_structure():
     assert dag.start_date, "A DAG não contém start_date."
 
 
-def test_groups():
+def test_tasks():
+    # from airflow.models import DagBag
+    # dag = DagBag(include_examples=False, dag_folder="/airflow/dags/").get_dag("ecmwfe_as_00")
+    import sys
+
     sys.path.insert(1, "/airflow/dags")
-    from ecmwf_dev.ecmwfe_as_00 import ecmwfe_as_00_dev_taskflow
+    from ecmwf_dev.ecmwfe_as_00 import ecmwfe_as_00_dev
 
-    dag = ecmwfe_as_00_dev_taskflow()
-    task_groups = dag.task_group.get_task_group_dict()
+    dag = ecmwfe_as_00_dev()
+    groups = {
+        "collect_group": [
+            "check_s3_CLE",
+            "download_decompression_CLE",
+            "check_download_CLE"
+        ],
+        "hydra_priority": ["msg2nc", "mergetime"],
+        "hydra": [
+            "hydra_height_100m",
+            "hydra_joules_radiation_convert",
+            "hydra_calc",
+            "hydra_ens_pctl"
+        ]
+    }
 
-    assert task_groups["collect_group"], "collect_group não existe."
+    for group, downstream_list in groups.items():
+        for task in downstream_list:
+            task = f"{group}.{task}"
+            assert dag.has_task(task), "A task não existe."
+            assert (
+                dag.get_task(task).task_group.group_id == group
+            ), "A task não pertence ao grupo correto."

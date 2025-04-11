@@ -1,11 +1,12 @@
-import sys
+def test_dag():
+    # from airflow.models import DagBag
+    # dag = DagBag(include_examples=False, dag_folder="/airflow/dags/").get_dag("ecmwf_as_00")
+    import sys
 
-
-def test_dag_structure():
     sys.path.insert(1, "/airflow/dags")
-    from ecmwf_dev.ecmwf_as_00 import ecmwf_as_00_dev_taskflow
+    from ecmwf_dev.ecmwf_as_00 import ecmwf_as_00
 
-    dag = ecmwf_as_00_dev_taskflow()
+    dag = ecmwf_as_00()
     assert dag.tags, "A DAG não contém tags."
     assert dag.doc_md, "A DAG não contém documentação."
     # assert dag.catchup, "A DAG não está configurada para catchup."
@@ -19,15 +20,56 @@ def test_dag_structure():
     assert dag.start_date, "A DAG não contém start_date."
 
 
-def test_groups():
+def test_tasks():
+    # from airflow.models import DagBag
+    # dag = DagBag(include_examples=False, dag_folder="/airflow/dags/").get_dag("ecmwf_as_00")
+    import sys
+
     sys.path.insert(1, "/airflow/dags")
-    from ecmwf_dev.ecmwf_as_00 import ecmwf_as_00_dev_taskflow
+    from ecmwf_dev.ecmwf_as_00 import ecmwf_as_00
 
-    dag = ecmwf_as_00_dev_taskflow()
-    task_groups = dag.task_group.get_task_group_dict()
+    dag = ecmwf_as_00()
+    groups = {
+        "collect_group": [
+            "check_s3_S7D",
+            "download_decompression_S7D",
+            "check_download_S7D",
+            "check_s3_S7S",
+            "download_decompression_S7S",
+            "check_download_S7S",
+        ],
+        "hydra_priority_group": ["msg2nc", "mergetime"],
+        "hydra_group": [
+            "rain_rate",
+            "hydra_joules_radiation_convert",
+            "calc_10m_wind_speed",
+        ],
+        "hydra_group.hydra_secondarys_group": [
+            "msg2nc_others",
+            "mergetime_others",
+            "msg2nc_cloud",
+            "mergetime_cloud",
+            "msg2nc_level",
+            "mergetime_level",
+            "msg2nc_height",
+            "mergetime_height",
+        ],
+        "hydra_group.hydra_calc_group": [
+            "hydra_850hPa_wind_speed",
+            "hydra_grib_indexes",
+            "hydra_calc",
+            "fog_and_frost_index",
+            "hydra_leaf_wetting_convert",
+            "mosquito_risk",
+        ],
+        "hydra_group.hydra_wind_group": ["calc_alpha", "hydra_100m_direction", "hydra_100m_speed", "hydra_100m_gust"],
+        "sema_group": ["extraction", "zip_files", "send_mail"],
+    }
 
-    assert task_groups["collect_group"], "collect_group não existe."
-    assert task_groups["hydra_priority_group"], "hydra_priority_group não existe."
-    assert task_groups["k_tt_sweat_indexes"], "k_tt_sweat_indexes não existe."
-    assert task_groups["hydra_group"], "hydra_group não existe."
-    assert task_groups["sema_group"], "sema_group não existe."
+    for group, downstream_list in groups.items():
+        for task in downstream_list:
+            task = f"{group}.{task}"
+            assert dag.has_task(task), "A task não existe."
+            assert (
+                dag.get_task(task).task_group.group_id == group
+            ), "A task não pertence ao grupo correto."

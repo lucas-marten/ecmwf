@@ -1,12 +1,18 @@
 from airflow.decorators import task, task_group
-from airflow.operators.bash import BashOperator
-from operators.Hydra import HydraOperator
 
 
 @task_group(group_id="sema_group", tooltip="sema_group")
-def sema_group(date_str):
-    cmd_extract = f"/airflow/dags/helpers/forecast/send_sema_extract.py  --category forecast --model ecmwf_as --date {date_str} --stackdir /airflow/dags/helpers/forecast/statics/sema_extract/ --type csvs"
-    cmd_zip = f"/airflow/dags/helpers/forecast/send_sema_extract.py  --category forecast --model ecmwf_as --date {date_str} --stackdir /airflow/dags/helpers/forecast/statics/sema_extract/ --type zip"
+def sema_group(date_string):
+    from airflow.operators.bash import BashOperator
+
+    from operators.Hydra import HydraOperator
+
+
+    date_hydra = f"{{{{ {date_string}.strftime('%Y%m%d00') }}}}"
+    date_sema = f"{{{{ {date_string}.strftime('%Y-%m-%dT00:00:00') }}}}"
+
+    cmd_extract = f"/airflow/dags/helpers/forecast/send_sema_extract.py  --category forecast --model ecmwf_as --date {date_sema} --stackdir /airflow/dags/helpers/forecast/statics/sema_extract/ --type csvs"
+    cmd_zip = f"/airflow/dags/helpers/forecast/send_sema_extract.py  --category forecast --model ecmwf_as --date {date_sema} --stackdir /airflow/dags/helpers/forecast/statics/sema_extract/ --type zip"
 
     extraction = BashOperator(task_id="extraction", bash_command=cmd_extract)
 
@@ -17,7 +23,7 @@ def sema_group(date_str):
         target="sema_extractions",
         process="send_mail",
         client="ecmwf10",
-        date=date_str,
+        date=date_hydra,
     )
 
     extraction >> zip_files >> send_mail
